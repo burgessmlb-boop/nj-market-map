@@ -26,9 +26,10 @@ export default function Methodology({ meta }) {
       <h2>Trends and the map’s colors</h2>
       <p>
         The map colors by whatever you select: a composite score, a raw metric (like typical
-        home value or rent yield), or its change over 1 month, 3 months, or 1 year. Changes are
-        computed on the smoothed series and drawn on a diverging scale — blue where the value is
-        rising, red where it’s falling, near-white around no change. Areas without data for the
+        home value or rent yield), or its change over 1 month, 3 months, or 1 year. Scores and
+        changes run on a red-to-green scale — deep red for the weakest markets (or biggest
+        declines), soft neutral in the middle, deep green for the strongest (or biggest gains).
+        Raw dollar metrics use a light-to-dark blue scale instead. Areas without data for the
         selected view stay faint and uncolored.
       </p>
 

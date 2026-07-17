@@ -1,5 +1,18 @@
+// Diverging red->green ramp for the 0-100 scores: dark red = weak market,
+// soft neutral at the middle, deep green = strong market. Poles validated for
+// colorblind separation (deutan deltaE 6.7, normal-vision 20.7); the neutral
+// gray midpoint and the always-visible tooltip/legend values are the safety
+// nets for red/green vision.
+export const SCORE_RAMP = [
+  [0, '#a92c24'],
+  [25, '#e07b70'],
+  [50, '#f0efec'],
+  [75, '#7ac695'],
+  [100, '#1b8a4a'],
+]
+
 // Sequential blue ramp (validated palette steps 100 -> 700), light -> dark.
-// Used for score layers, raw-metric layers, and the legend gradient.
+// Used for raw magnitude metrics (home value, rent, days) and their legend.
 export const RAMP = [
   [0, '#cde2fb'],
   [25, '#9ec5f4'],
@@ -9,34 +22,43 @@ export const RAMP = [
 ]
 
 // Diverging ramp for signed values (changes over time): red = falling,
-// neutral near-white at zero, blue = rising. Poles validated for CVD
-// separation (deltaE 20); no-data areas render near-transparent instead of
-// gray so they can't be confused with the neutral midpoint.
+// neutral near-white at zero, green = rising — matching the score ramp so
+// "green = good" reads the same everywhere. No-data areas render
+// near-transparent instead of gray so they can't be confused with the mid.
 export const DIV_RAMP = [
   [-1, '#a92c24'],
   [-0.5, '#e07b70'],
   [0, '#f0efec'],
-  [0.5, '#6da7ec'],
-  [1, '#1c5cab'],
+  [0.5, '#7ac695'],
+  [1, '#1b8a4a'],
 ]
 
 export const NO_DATA_COLOR = '#d9d8d2'
 
-// Interpolate the ramp in JS (for legend swatches / detail panel accents).
+// Interpolate the score ramp in JS (for chips / bars / detail panel accents).
 export function scoreColor(score) {
   if (score == null) return NO_DATA_COLOR
   const s = Math.max(0, Math.min(100, score))
-  for (let i = 1; i < RAMP.length; i++) {
-    const [x1, c1] = RAMP[i - 1]
-    const [x2, c2] = RAMP[i]
+  for (let i = 1; i < SCORE_RAMP.length; i++) {
+    const [x1, c1] = SCORE_RAMP[i - 1]
+    const [x2, c2] = SCORE_RAMP[i]
     if (s <= x2) return mixHex(c1, c2, (s - x1) / (x2 - x1))
   }
-  return RAMP[RAMP.length - 1][1]
+  return SCORE_RAMP[SCORE_RAMP.length - 1][1]
 }
 
-// Text color that stays readable on top of scoreColor(score).
+// Readable text over scoreColor(score). Both poles are dark now (deep red and
+// deep green) while the middle is light, so pick ink by the resolved color's
+// luminance rather than the score value.
 export function scoreInk(score) {
-  return score != null && score > 55 ? '#ffffff' : '#0b0b0b'
+  if (score == null) return '#0b0b0b'
+  return luminance(scoreColor(score)) < 0.5 ? '#ffffff' : '#0b0b0b'
+}
+
+// Perceived luminance (0 dark - 1 light) of a hex color, sRGB-weighted.
+function luminance(hex) {
+  const [r, g, b] = parseHex(hex).map((v) => v / 255)
+  return 0.299 * r + 0.587 * g + 0.114 * b
 }
 
 function mixHex(a, b, t) {
@@ -54,7 +76,7 @@ function parseHex(h) {
 // sequential fields spread the ramp across [low, median, high]; diverging
 // fields center the neutral color on zero. Returns [[value, color], ...].
 export function colorStops(field, domain) {
-  if (field.ramp === 'score') return RAMP
+  if (field.ramp === 'score') return SCORE_RAMP
   if (!domain) return null
   const [lo, mid, hi] = domain
   if (field.ramp === 'div') {
