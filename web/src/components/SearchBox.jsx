@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 
+const LEVEL_BADGE = { zip: 'zip', town: 'town', county: 'county' }
+
 export default function SearchBox({ index, onPick }) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -10,12 +12,13 @@ export default function SearchBox({ index, onPick }) {
     const q = query.trim().toLowerCase()
     if (q.length < 2) return []
     const hits = index.filter(
-      (e) =>
-        e.zip.startsWith(q) ||
-        e.city.toLowerCase().includes(q) ||
-        e.county.toLowerCase().includes(q),
+      (e) => e.name.toLowerCase().startsWith(q) || e.sub.toLowerCase().includes(q),
     )
-    hits.sort((a, b) => a.city.localeCompare(b.city) || a.zip.localeCompare(b.zip))
+    // Towns and counties before individual zips; then alphabetical.
+    const order = { county: 0, town: 1, zip: 2 }
+    hits.sort(
+      (a, b) => order[a.level] - order[b.level] || a.name.localeCompare(b.name),
+    )
     return hits.slice(0, 8)
   }, [index, query])
 
@@ -48,9 +51,9 @@ export default function SearchBox({ index, onPick }) {
       <input
         ref={boxRef}
         type="search"
-        placeholder="Search town or zip code…"
+        placeholder="Search town, county or zip…"
         value={query}
-        aria-label="Search town or zip code"
+        aria-label="Search town, county or zip code"
         onChange={(e) => {
           setQuery(e.target.value)
           setOpen(true)
@@ -64,7 +67,7 @@ export default function SearchBox({ index, onPick }) {
         <ul className="search-results card" role="listbox">
           {results.map((e, i) => (
             <li
-              key={e.zip}
+              key={`${e.level}:${e.id}`}
               role="option"
               aria-selected={i === cursor}
               className={i === cursor ? 'cursor' : ''}
@@ -74,8 +77,9 @@ export default function SearchBox({ index, onPick }) {
               }}
               onMouseEnter={() => setCursor(i)}
             >
-              <strong>{e.zip}</strong> {e.city}
-              <span className="result-county">{e.county} County</span>
+              <span className={`level-badge level-${e.level}`}>{LEVEL_BADGE[e.level]}</span>
+              <strong>{e.name}</strong>
+              <span className="result-county">{e.sub}</span>
             </li>
           ))}
         </ul>

@@ -187,6 +187,55 @@ body {
   font-weight: 400;
 }
 
+/* ---------- metric picker ---------- */
+
+.metric-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.metric-select {
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--ink);
+  background: var(--page);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 6px 8px;
+  max-width: 200px;
+}
+
+.metric-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.layer-toggle.timeframes button {
+  padding: 6px 8px;
+}
+
+/* ---------- search level badges ---------- */
+
+.level-badge {
+  display: inline-block;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-2);
+  background: var(--page);
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-right: 7px;
+  vertical-align: 1px;
+}
+
+.level-badge.level-county {
+  background: rgba(37, 106, 191, 0.08);
+}
+
 /* ---------- legend ---------- */
 
 .legend {
@@ -249,7 +298,7 @@ body {
 
 /* ---------- tooltip ---------- */
 
-.zip-tooltip .maplibregl-popup-content {
+.geo-tooltip .maplibregl-popup-content {
   background: var(--ink);
   color: #fff;
   padding: 6px 10px;
@@ -259,7 +308,7 @@ body {
   box-shadow: var(--shadow);
 }
 
-.zip-tooltip .maplibregl-popup-tip {
+.geo-tooltip .maplibregl-popup-tip {
   border-top-color: var(--ink);
   border-bottom-color: var(--ink);
 }
@@ -398,6 +447,65 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.detail-rank {
+  color: var(--muted);
+  font-size: 11.5px;
+  margin-top: 2px;
+}
+
+.spark-block {
+  margin-bottom: 12px;
+}
+
+.spark-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.spark-caption {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.spark-caption strong {
+  color: var(--ink);
+}
+
+.trend-block {
+  margin-bottom: 12px;
+}
+
+.trend-table th {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--muted);
+  text-align: right;
+  padding: 2px 0;
+}
+
+.trend-table th:first-child {
+  text-align: left;
+}
+
+.trend-table td:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  padding-left: 8px;
+}
+
+.delta-up {
+  color: #1c5cab;
+}
+
+.delta-down {
+  color: #a92c24;
+}
+
 .detail-notes {
   margin-top: 12px;
   color: var(--muted);
@@ -423,6 +531,231 @@ body {
 
 .loading.error {
   color: #d03b3b;
+}
+
+/* ---------- site nav ---------- */
+
+.site-nav {
+  position: absolute;
+  right: 12px;
+  bottom: 36px;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  z-index: 12;
+}
+
+.site-nav a {
+  font-size: 12px;
+  color: var(--ink-2);
+  text-decoration: none;
+  padding: 5px 10px;
+  border-radius: 7px;
+}
+
+.site-nav a:hover {
+  color: var(--ink);
+}
+
+.site-nav a.active {
+  background: var(--page);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ---------- state summary strip ---------- */
+
+.state-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 14px;
+}
+
+.state-summary .stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.stat-value {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-link {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.stat-link:hover {
+  text-decoration: underline;
+}
+
+/* ---------- pulse page ---------- */
+
+.pulse {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 40px 20px 110px;
+}
+
+.pulse h1 {
+  font-size: 26px;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+
+.pulse-headline {
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+
+.pulse-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.pulse-card {
+  padding: 14px 16px 10px;
+}
+
+.pulse-note {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 16px;
+}
+
+/* ---------- rankings page ---------- */
+
+.page-scroll {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.rankings {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 40px 20px 110px;
+}
+
+.rankings h1 {
+  font-size: 26px;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+
+.rankings-sub {
+  color: var(--ink-2);
+  font-size: 14px;
+  margin-top: 0;
+}
+
+.rankings-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 18px 0 14px;
+}
+
+.sort-toggle,
+.show-more {
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 6px 11px;
+  cursor: pointer;
+}
+
+.sort-toggle:hover,
+.show-more:hover {
+  color: var(--ink);
+}
+
+.show-more {
+  display: block;
+  margin: 14px auto 0;
+}
+
+.rank-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  overflow: hidden;
+}
+
+.rank-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.rank-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.rank-table tbody tr {
+  cursor: pointer;
+}
+
+.rank-table tbody tr:hover {
+  background: rgba(37, 106, 191, 0.05);
+}
+
+.rank-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.rank-n {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  width: 34px;
+}
+
+.rank-sub {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.rank-county {
+  color: var(--ink-2);
+}
+
+.rank-value,
+.rank-score {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-chip {
+  display: inline-block;
+  min-width: 34px;
+  text-align: center;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-weight: 600;
+  font-size: 12px;
 }
 
 /* ---------- footer ---------- */
@@ -548,5 +881,23 @@ body {
     left: 8px;
     bottom: 4px;
     flex-wrap: wrap;
+  }
+
+  .site-nav {
+    right: 8px;
+    bottom: 64px;
+  }
+
+  .state-summary {
+    display: none; /* the strip crowds small screens; the pulse page has it all */
+  }
+
+  .metric-select {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .rank-county {
+    display: none;
   }
 }

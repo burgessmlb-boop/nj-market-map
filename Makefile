@@ -9,11 +9,12 @@ setup:
 	$(VENV)/bin/pip install -r pipeline/requirements.txt
 	cd web && npm install
 
-# Monthly data refresh: download latest data, recompute scores, validate.
+# Data refresh: download latest data, recompute all levels, validate.
+# (Runs automatically every week via .github/workflows/refresh.yml.)
 refresh:
 	cd pipeline && ../$(PY) run.py
 
-# Rebuild zip-code boundary shapes (rarely needed).
+# Rebuild zip/town/county boundary shapes (rarely needed; outputs are committed).
 boundaries:
 	cd pipeline && ../$(PY) boundaries.py
 

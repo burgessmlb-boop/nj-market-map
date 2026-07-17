@@ -1,35 +1,25 @@
-import { RAMP, NO_DATA_COLOR } from '../lib/colors.js'
-import { LAYERS } from './LayerToggle.jsx'
+import { NO_DATA_COLOR, legendScale } from '../lib/colors.js'
 
-const DESCRIPTIONS = {
-  overall: 'Blend of investment, hotness and affordability',
-  investment: 'Appreciation, rent yield and supply trends',
-  hotness: 'How fast and competitively homes are selling',
-  affordability: 'Home values relative to local incomes and rents',
-}
-
-export default function Legend({ activeLayer, coverage }) {
-  const gradient = `linear-gradient(to right, ${RAMP.map(([v, c]) => `${c} ${v}%`).join(', ')})`
-  const label = LAYERS.find((l) => l.key === activeLayer)?.label
-  const empty = coverage?.[activeLayer] === 0
+export default function Legend({ field, domain, empty }) {
+  const scale = legendScale(field, domain)
   return (
     <div className="legend card">
-      <div className="legend-title">{label} score</div>
-      <div className="legend-desc">{DESCRIPTIONS[activeLayer]}</div>
-      {empty ? (
+      <div className="legend-title">{field.label}</div>
+      {field.desc && <div className="legend-desc">{field.desc}</div>}
+      {empty || !scale ? (
         <div className="legend-empty">No data available yet for this layer.</div>
       ) : (
         <>
-          <div className="legend-bar" style={{ background: gradient }} />
+          <div className="legend-bar" style={{ background: scale.gradient }} />
           <div className="legend-ticks">
-            <span>0</span>
-            <span>50</span>
-            <span>100</span>
+            {scale.ticks.map((v, i) => (
+              <span key={i}>{field.tickFmt(v)}</span>
+            ))}
           </div>
         </>
       )}
       <div className="legend-nodata">
-        <span className="swatch" style={{ background: NO_DATA_COLOR }} />
+        <span className="swatch" style={{ background: NO_DATA_COLOR, opacity: 0.4 }} />
         No data
       </div>
     </div>

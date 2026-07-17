@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { fillExpression } from '../lib/colors.js'
-import { score1 } from '../lib/format.js'
+import { fillExpression, opacityExpression } from '../lib/colors.js'
 
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron'
 const NJ_CENTER = [-74.55, 40.06]
@@ -10,22 +9,32 @@ const NJ_MAX_BOUNDS = [
   [-76.6, 38.5],
   [-72.6, 41.7],
 ]
+const EMPTY = { type: 'FeatureCollection', features: [] }
 
-export default function MapView({ data, activeLayer, selectedZip, onSelect, flyToZip }) {
+export default function MapView({ geo, field, domain, selectedId, onSelect, flyTo, renderTooltip }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const loadedRef = useRef(false)
-  const hoverZipRef = useRef(null)
+  const hoverRef = useRef(null)
   const selectedRef = useRef(null)
-  const layerRef = useRef(activeLayer)
+  const geoRef = useRef(geo)
+  const tooltipFnRef = useRef(renderTooltip)
+  const flownRef = useRef(null)
 
   useEffect(() => {
-    layerRef.current = activeLayer
-  }, [activeLayer])
-
+    geoRef.current = geo
+  }, [geo])
   useEffect(() => {
-    if (!data || mapRef.current) return
+    tooltipFnRef.current = renderTooltip
+  }, [renderTooltip])
 
+  const paintRef = useRef({ field, domain })
+  useEffect(() => {
+    paintRef.current = { field, domain }
+  }, [field, domain])
+
+  // Create the map once.
+  useEffect(() => {
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: STYLE_URL,
@@ -41,46 +50,46 @@ export default function MapView({ data, activeLayer, selectedZip, onSelect, flyT
     const tooltip = new maplibregl.Popup({
       closeButton: false,
       closeOnClick: false,
-      className: 'zip-tooltip',
+      className: 'geo-tooltip',
       maxWidth: 'none',
     })
 
     map.on('load', () => {
-      map.addSource('zips', { type: 'geojson', data: data.geojson, promoteId: 'zip' })
+      map.addSource('geo', {
+        type: 'geojson',
+        data: geoRef.current?.geojson ?? EMPTY,
+        promoteId: 'id',
+      })
 
       // Insert under the basemap's first symbol layer so place labels stay on top.
       const firstSymbol = map.getStyle().layers.find((l) => l.type === 'symbol')?.id
+      const { field: f, domain: d } = paintRef.current
 
       map.addLayer(
         {
-          id: 'zip-fill',
+          id: 'geo-fill',
           type: 'fill',
-          source: 'zips',
+          source: 'geo',
           paint: {
-            'fill-color': fillExpression(layerRef.current),
-            'fill-opacity': [
-              'case',
-              ['boolean', ['feature-state', 'hover'], false],
-              0.92,
-              0.75,
-            ],
+            'fill-color': fillExpression(f, d),
+            'fill-opacity': opacityExpression(f),
           },
         },
         firstSymbol,
       )
       map.addLayer(
         {
-          id: 'zip-line',
+          id: 'geo-line',
           type: 'line',
-          source: 'zips',
+          source: 'geo',
           paint: { 'line-color': 'rgba(255,255,255,0.65)', 'line-width': 0.6 },
         },
         firstSymbol,
       )
       map.addLayer({
-        id: 'zip-highlight',
+        id: 'geo-highlight',
         type: 'line',
-        source: 'zips',
+        source: 'geo',
         paint: {
           'line-color': '#0b0b0b',
           'line-width': [
@@ -96,44 +105,35 @@ export default function MapView({ data, activeLayer, selectedZip, onSelect, flyT
 
       loadedRef.current = true
       if (selectedRef.current) {
-        map.setFeatureState({ source: 'zips', id: selectedRef.current }, { selected: true })
+        map.setFeatureState({ source: 'geo', id: selectedRef.current }, { selected: true })
       }
     })
 
-    map.on('mousemove', 'zip-fill', (e) => {
+    map.on('mousemove', 'geo-fill', (e) => {
       const f = e.features?.[0]
       if (!f) return
-      const zip = f.properties.zip
-      if (hoverZipRef.current && hoverZipRef.current !== zip) {
-        map.setFeatureState({ source: 'zips', id: hoverZipRef.current }, { hover: false })
+      const id = f.properties.id
+      if (hoverRef.current && hoverRef.current !== id) {
+        map.setFeatureState({ source: 'geo', id: hoverRef.current }, { hover: false })
       }
-      hoverZipRef.current = zip
-      map.setFeatureState({ source: 'zips', id: zip }, { hover: true })
+      hoverRef.current = id
+      map.setFeatureState({ source: 'geo', id }, { hover: true })
       map.getCanvas().style.cursor = 'pointer'
-
-      const score = f.properties[`score_${layerRef.current}`]
-      const city = f.properties.city
-      tooltip
-        .setLngLat(e.lngLat)
-        .setHTML(
-          `<strong>${zip}</strong>${city ? ` · ${escapeHtml(city)}` : ''}` +
-            `<span class="tt-score">${score != null ? score1(score) : 'no data'}</span>`,
-        )
-        .addTo(map)
+      tooltip.setLngLat(e.lngLat).setHTML(tooltipFnRef.current(f.properties)).addTo(map)
     })
 
-    map.on('mouseleave', 'zip-fill', () => {
-      if (hoverZipRef.current) {
-        map.setFeatureState({ source: 'zips', id: hoverZipRef.current }, { hover: false })
-        hoverZipRef.current = null
+    map.on('mouseleave', 'geo-fill', () => {
+      if (hoverRef.current) {
+        map.setFeatureState({ source: 'geo', id: hoverRef.current }, { hover: false })
+        hoverRef.current = null
       }
       map.getCanvas().style.cursor = ''
       tooltip.remove()
     })
 
     map.on('click', (e) => {
-      const hits = map.queryRenderedFeatures(e.point, { layers: ['zip-fill'] })
-      onSelect(hits.length ? hits[0].properties.zip : null)
+      const hits = map.queryRenderedFeatures(e.point, { layers: ['geo-fill'] })
+      onSelect(hits.length ? hits[0].properties.id : null)
     })
 
     return () => {
@@ -141,34 +141,48 @@ export default function MapView({ data, activeLayer, selectedZip, onSelect, flyT
       mapRef.current = null
       loadedRef.current = false
     }
-  }, [data]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Layer switch: restyle the fill only.
+  // Level switch: swap the source data and drop stale feature-state.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !loadedRef.current || !geo) return
+    map.removeFeatureState({ source: 'geo' })
+    hoverRef.current = null
+    map.getSource('geo').setData(geo.geojson)
+    if (selectedRef.current) {
+      map.setFeatureState({ source: 'geo', id: selectedRef.current }, { selected: true })
+    }
+  }, [geo])
+
+  // Field/domain switch: restyle fill color and no-data opacity only.
   useEffect(() => {
     const map = mapRef.current
     if (map && loadedRef.current) {
-      map.setPaintProperty('zip-fill', 'fill-color', fillExpression(activeLayer))
+      map.setPaintProperty('geo-fill', 'fill-color', fillExpression(field, domain))
+      map.setPaintProperty('geo-fill', 'fill-opacity', opacityExpression(field))
     }
-  }, [activeLayer])
+  }, [field, domain])
 
   // Selection highlight via feature-state.
   useEffect(() => {
     const map = mapRef.current
     const prev = selectedRef.current
-    selectedRef.current = selectedZip
+    selectedRef.current = selectedId
     if (!map || !loadedRef.current) return
-    if (prev) map.setFeatureState({ source: 'zips', id: prev }, { selected: false })
-    if (selectedZip) {
-      map.setFeatureState({ source: 'zips', id: selectedZip }, { selected: true })
+    if (prev) map.setFeatureState({ source: 'geo', id: prev }, { selected: false })
+    if (selectedId) {
+      map.setFeatureState({ source: 'geo', id: selectedId }, { selected: true })
     }
-  }, [selectedZip])
+  }, [selectedId])
 
-  // Fly to a zip chosen in the search box.
+  // Fly to a place chosen in search/rankings (waits for its level's bounds).
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !flyToZip) return
-    const box = data?.bounds?.[flyToZip.zip]
+    if (!map || !flyTo || flownRef.current === flyTo.at) return
+    const box = geo?.bounds?.[flyTo.id]
     if (box) {
+      flownRef.current = flyTo.at
       map.fitBounds(
         [
           [box[0], box[1]],
@@ -177,11 +191,7 @@ export default function MapView({ data, activeLayer, selectedZip, onSelect, flyT
         { padding: 120, maxZoom: 12, duration: 900 },
       )
     }
-  }, [flyToZip]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [flyTo, geo])
 
   return <div ref={containerRef} className="map-container" />
-}
-
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 }

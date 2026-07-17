@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Called by refresh.yml after a data update: pushes made with the default
+  # GITHUB_TOKEN don't trigger `on: push`, so the refresh invokes this directly.
+  workflow_call:
 
 permissions:
   contents: read
@@ -18,7 +21,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # Explicit ref: when called from refresh.yml, github.sha points at the
+      # pre-refresh commit; we always want to build the tip of main.
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-node@v4
         with:
           node-version: 22
