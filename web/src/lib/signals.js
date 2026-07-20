@@ -39,10 +39,28 @@ export const SIGNALS = [
     desc: 'Owned 15+ years — equity plus life-stage moves',
   },
   {
+    id: 'senior_owners',
+    category: 'equity',
+    label: 'Owners 65+',
+    desc: 'Downsizing and estate sales start here',
+  },
+  {
+    id: 'cost_burdened',
+    category: 'distress',
+    label: 'Cost-burdened owners',
+    desc: 'Paying 30%+ of income on housing',
+  },
+  {
     id: 'older_stock',
     category: 'stock',
     label: 'Older housing',
     desc: 'Built before 1970 — value-add and rehab targets',
+  },
+  {
+    id: 'small_multifamily',
+    category: 'stock',
+    label: 'Small multifamily',
+    desc: '2–4 unit buildings — classic investor stock',
   },
   {
     id: 'seasonal',
@@ -51,6 +69,35 @@ export const SIGNALS = [
     desc: 'Shore and vacation markets',
   },
 ]
+
+// One-click investor personas: the combinations people actually hunt for.
+export const PRESETS = [
+  {
+    id: 'probate',
+    label: 'Probate / estate',
+    desc: 'Older owners, long tenure, no mortgage',
+    signals: ['senior_owners', 'long_tenure', 'free_clear'],
+  },
+  {
+    id: 'distressed',
+    label: 'Distressed',
+    desc: 'Empty homes and owners under financial strain',
+    signals: ['distressed_vacancy', 'cost_burdened'],
+  },
+]
+
+// Is this preset exactly what's currently toggled on?
+export function presetIsActive(preset, active) {
+  return (
+    preset.signals.length === active.size &&
+    preset.signals.every((id) => active.has(id))
+  )
+}
+
+// Households/units behind a signal, e.g. "~1,240 homes".
+export function signalCount(n) {
+  return n == null ? null : `~${Math.round(n).toLocaleString('en-US')}`
+}
 
 export const SIGNAL_BY_ID = Object.fromEntries(SIGNALS.map((s) => [s.id, s]))
 

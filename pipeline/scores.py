@@ -124,23 +124,29 @@ def load_income(acs: pd.DataFrame) -> pd.Series:
     return acs[config.ACS_INCOME_VAR].astype(float).rename("income")
 
 
-def build_signals(acs: pd.DataFrame, index: pd.Index) -> pd.DataFrame:
+def build_signals(acs: pd.DataFrame, index: pd.Index) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Off-market opportunity signals as shares (0-1), suppressed where the
-    denominator is too small for ACS estimates to mean anything."""
+    denominator is too small for ACS estimates to mean anything. Also returns
+    the raw numerator counts, which size a farm area ("~1,240 homes here")."""
     out = pd.DataFrame(index=index)
+    counts = pd.DataFrame(index=index)
     for key, spec in config.ACS_SIGNALS.items():
         if acs.empty or spec["den"] not in acs.columns:
             out[key] = pd.NA
+            counts[key] = pd.NA
             continue
         den = acs[spec["den"]].reindex(index)
         num = sum(
             acs[v].reindex(index).fillna(0) for v in spec["num"] if v in acs.columns
         )
         share = num / den
-        share[den < config.MIN_UNITS_FOR_SIGNAL] = pd.NA
-        share[den.isna()] = pd.NA
+        too_small = (den < config.MIN_UNITS_FOR_SIGNAL) | den.isna()
+        share[too_small] = pd.NA
+        num = num.astype(float)
+        num[too_small] = pd.NA
         out[key] = share
-    return out
+        counts[key] = num
+    return out, counts
 
 
 def build_places(level: str, frames: dict) -> pd.DataFrame:
@@ -298,7 +304,8 @@ def build_signal_pct(signals: pd.DataFrame) -> pd.DataFrame:
     return pct
 
 
-def build_output(m, places, scores, ranks, trends, history, signals, signal_pct, meta) -> dict:
+def build_output(m, places, scores, ranks, trends, history, signals, signal_pct,
+                 signal_counts, meta) -> dict:
     geos = {}
     scored_counts = {d: int(scores[d].notna().sum())
                      for d in ["overall", "investment", "hotness", "affordability"]}
@@ -343,6 +350,11 @@ def build_output(m, places, scores, ranks, trends, history, signals, signal_pct,
                 k: _num(signal_pct.loc[g, k], 1) for k in signal_pct.columns
                 if not pd.isna(signal_pct.loc[g, k])
             },
+            # Households/units behind each share, for sizing a farm area.
+            "signal_n": {
+                k: _int(signal_counts.loc[g, k]) for k in signal_counts.columns
+                if not pd.isna(signal_counts.loc[g, k])
+            },
         }
         for col in ("city", "county", "official"):
             if col in places.columns:
@@ -374,7 +386,7 @@ def run_level(level: str, mortgage_rate: float) -> None:
     ranks = build_ranks(scores)
     trends = build_trends(frames, m.index)
     history, history_start = build_history(frames, m.index)
-    signals = build_signals(acs, m.index)
+    signals, signal_counts = build_signals(acs, m.index)
     signal_pct = build_signal_pct(signals)
     covered = {k: int(signals[k].notna().sum()) for k in signals.columns}
     print("  off-market signals: " + ", ".join(f"{k}={v}" for k, v in covered.items()))
@@ -396,7 +408,8 @@ def run_level(level: str, mortgage_rate: float) -> None:
         "domains": domains,
         "signal_coverage": covered,
     }
-    out = build_output(m, places, scores, ranks, trends, history, signals, signal_pct, meta)
+    out = build_output(m, places, scores, ranks, trends, history, signals, signal_pct,
+                       signal_counts, meta)
     config.OUT_DIR.mkdir(parents=True, exist_ok=True)
     dest = config.OUT_DIR / f"scores_{level}.json"
     dest.write_text(json.dumps(out, separators=(",", ":")))

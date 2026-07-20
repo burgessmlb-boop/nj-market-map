@@ -1,7 +1,7 @@
 import { scoreColor, scoreInk } from '../lib/colors.js'
 import { dollars, percent, pts, ratio, days, deltaDays, score1, monthName } from '../lib/format.js'
 import { LEVELS } from '../lib/metrics.js'
-import { SIGNALS, signalPct } from '../lib/signals.js'
+import { SIGNALS, signalCount, signalPct } from '../lib/signals.js'
 import Sparkline from './Sparkline.jsx'
 
 const SUB_SCORES = [
@@ -43,6 +43,7 @@ export default function DetailPanel({ id, level, entry, meta, onClose }) {
     history = {},
     rank = {},
     signals = {},
+    signal_n: signalCounts = {},
   } = entry
   const signalRows = SIGNALS.filter((s) => signals[s.id] != null)
   const partial = SUB_SCORES.some(([k]) => coverage[k] != null && coverage[k] < 1)
@@ -152,7 +153,12 @@ export default function DetailPanel({ id, level, entry, meta, onClose }) {
               {signalRows.map((s) => (
                 <tr key={s.id}>
                   <td title={s.desc}>{s.label}</td>
-                  <td>{signalPct(signals[s.id])}</td>
+                  <td>
+                    {signalPct(signals[s.id])}
+                    {signalCounts[s.id] != null && (
+                      <span className="stat-n">{signalCount(signalCounts[s.id])}</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

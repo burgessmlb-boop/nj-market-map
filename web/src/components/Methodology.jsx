@@ -98,12 +98,33 @@ export default function Methodology({ meta }) {
           life-stage moves.
         </li>
         <li>
+          <strong>Owners 65+</strong> — where downsizing and estate sales begin.
+        </li>
+        <li>
+          <strong>Cost-burdened owners</strong> — paying 30% or more of income on housing,
+          a standard measure of financial strain.
+        </li>
+        <li>
           <strong>Older housing</strong> — built before 1970; value-add and rehab candidates.
+        </li>
+        <li>
+          <strong>Small multifamily</strong> — 2–4 unit buildings, the classic small-investor
+          property type.
         </li>
         <li>
           <strong>Seasonal / second homes</strong> — shore and vacation markets.
         </li>
       </ul>
+      <p>
+        Two <strong>presets</strong> tick common combinations in one click:{' '}
+        <em>Probate / estate</em> (owners 65+, long tenure, no mortgage) and{' '}
+        <em>Distressed</em> (empty homes plus cost-burdened owners).
+      </p>
+      <p>
+        Alongside each percentage the site shows roughly <strong>how many homes</strong> sit
+        behind it — so “53% long-time owners” also reads as “about 1,240 households.” That
+        figure sizes an area for outreach; it is a Census estimate, not a list.
+      </p>
       <p>
         <strong>These are neighborhood statistics, not property listings.</strong> This site
         does not have off-market inventory, addresses of distressed properties, or any

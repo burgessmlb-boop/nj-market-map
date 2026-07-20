@@ -156,6 +156,7 @@ export default function App() {
               level={level}
               averages={averages}
               selected={selectedEntry?.signals}
+              selectedCounts={selectedEntry?.signal_n}
               selectedName={
                 selectedEntry
                   ? level === 'county'

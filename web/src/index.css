@@ -343,6 +343,37 @@ body {
   line-height: 1.4;
 }
 
+/* one-click investor personas */
+.presets {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.preset {
+  flex: 1;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 8px;
+  border-radius: 7px;
+  border: 1px solid var(--hairline);
+  background: var(--page);
+  color: var(--ink-2);
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.preset:hover {
+  color: var(--ink);
+}
+
+.preset.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 /* NJ avg vs this place */
 .value-mode {
   display: flex;
@@ -507,6 +538,23 @@ body {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   margin-top: 1px;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+/* Farm size: how many homes sit behind the share. */
+.filter-n,
+.stat-n {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.stat-n {
+  margin-left: 7px;
 }
 
 .filter-note {

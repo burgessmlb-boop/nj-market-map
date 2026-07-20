@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { scoreColor, scoreInk } from '../lib/colors.js'
 import { score1 } from '../lib/format.js'
 import { SCORES, METRICS, TIMEFRAMES, LEVELS, resolveField, valueOf } from '../lib/metrics.js'
+import { SIGNALS, SIGNAL_BY_ID, signalCount, signalPct } from '../lib/signals.js'
 import { loadScores } from '../lib/useLevelData.js'
 
 const PAGE = 25
@@ -24,17 +25,53 @@ export default function Rankings({ onPick }) {
     }
   }, [level])
 
-  const field = resolveField(sel)
+  const isSignal = sel.kind === 'signal'
+  const field = useMemo(
+    () =>
+      sel.kind === 'signal'
+        ? { label: SIGNAL_BY_ID[sel.id].label, fmt: signalPct, ramp: 'signal' }
+        : resolveField(sel),
+    [sel],
+  )
   const activeMetric = sel.kind === 'metric' ? METRICS.find((m) => m.id === sel.id) : null
 
   const rows = useMemo(() => {
     if (!scores) return []
     const all = Object.entries(scores.geos)
-      .map(([id, e]) => ({ id, entry: e, value: valueOf(field, e) }))
+      .map(([id, e]) => ({
+        id,
+        entry: e,
+        value: isSignal ? (e.signals?.[sel.id] ?? null) : valueOf(field, e),
+        count: isSignal ? (e.signal_n?.[sel.id] ?? null) : null,
+      }))
       .filter((r) => r.value != null)
     all.sort((a, b) => (asc ? a.value - b.value : b.value - a.value))
     return all
-  }, [scores, field, asc])
+  }, [scores, field, asc, isSignal, sel.id])
+
+  function downloadCsv() {
+    const head = ['rank', level, 'county', field.label, isSignal ? 'homes' : '', 'overall_score']
+      .filter(Boolean)
+    const lines = [head.join(',')]
+    rows.forEach((r, i) => {
+      const cells = [
+        i + 1,
+        `"${r.entry.name.replace(/"/g, '""')}"`,
+        `"${r.entry.county ?? ''}"`,
+        r.value,
+        ...(isSignal ? [r.count ?? ''] : []),
+        r.entry.scores.overall ?? '',
+      ]
+      lines.push(cells.join(','))
+    })
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `nj-market-map-${level}-${sel.id}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   const noun = LEVELS.find((l) => l.id === level)?.noun
 
@@ -70,9 +107,9 @@ export default function Rankings({ onPick }) {
           onChange={(e) => {
             const [kind, id] = e.target.value.split(':')
             setSel(
-              kind === 'score'
-                ? { kind, id }
-                : { kind, id, timeframe: METRICS.find((m) => m.id === id).timeframes[0] },
+              kind === 'metric'
+                ? { kind, id, timeframe: METRICS.find((m) => m.id === id).timeframes[0] }
+                : { kind, id },
             )
             setLimit(PAGE)
           }}
@@ -88,6 +125,13 @@ export default function Rankings({ onPick }) {
             {METRICS.map((m) => (
               <option key={m.id} value={`metric:${m.id}`}>
                 {m.label}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Off-market signals">
+            {SIGNALS.map((s) => (
+              <option key={s.id} value={`signal:${s.id}`}>
+                {s.label}
               </option>
             ))}
           </optgroup>
@@ -112,6 +156,9 @@ export default function Rankings({ onPick }) {
         <button className="sort-toggle" onClick={() => setAsc(!asc)}>
           {asc ? 'Lowest first ↑' : 'Highest first ↓'}
         </button>
+        <button className="sort-toggle" onClick={downloadCsv} disabled={!rows.length}>
+          Download CSV
+        </button>
       </div>
 
       {!scores ? (
@@ -125,6 +172,7 @@ export default function Rankings({ onPick }) {
                 <th>{level === 'zip' ? 'Zip' : level === 'town' ? 'Town' : 'County'}</th>
                 {level !== 'county' && <th className="rank-county">County</th>}
                 <th className="rank-value">{field.label}</th>
+                {isSignal && <th className="rank-value">Homes</th>}
                 <th className="rank-score">Overall</th>
               </tr>
             </thead>
@@ -140,6 +188,9 @@ export default function Rankings({ onPick }) {
                   </td>
                   {level !== 'county' && <td className="rank-county">{r.entry.county}</td>}
                   <td className="rank-value">{field.fmt(r.value)}</td>
+                  {isSignal && (
+                    <td className="rank-value">{signalCount(r.count) ?? '—'}</td>
+                  )}
                   <td className="rank-score">
                     <span
                       className="score-chip"

@@ -90,6 +90,26 @@ ACS_SIGNALS = {
         "num": ["B25034_008E", "B25034_009E", "B25034_010E", "B25034_011E"],
         "den": "B25034_001E",
     },
+    "senior_owners": {
+        "label": "Owner-occupants 65+",
+        # The best free proxy for estate/probate/downsizing turnover.
+        "num": ["B25007_009E", "B25007_010E", "B25007_011E"],
+        "den": "B25007_002E",
+    },
+    "cost_burdened": {
+        "label": "Owners paying 30%+ of income on housing",
+        # Both branches: with a mortgage (008-011) and without (019-022).
+        "num": [
+            "B25091_008E", "B25091_009E", "B25091_010E", "B25091_011E",
+            "B25091_019E", "B25091_020E", "B25091_021E", "B25091_022E",
+        ],
+        "den": "B25091_001E",
+    },
+    "small_multifamily": {
+        "label": "2-4 unit buildings",
+        "num": ["B25024_004E", "B25024_005E"],
+        "den": "B25024_001E",
+    },
 }
 
 # ACS 5-year estimates get noisy for very small areas; suppress a signal when

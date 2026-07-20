@@ -1,5 +1,12 @@
 import { useState } from 'react'
-import { GROUPED_SIGNALS, SIGNALS, signalPct } from '../lib/signals.js'
+import {
+  GROUPED_SIGNALS,
+  PRESETS,
+  SIGNALS,
+  presetIsActive,
+  signalCount,
+  signalPct,
+} from '../lib/signals.js'
 
 // Left-hand filter panel. Toggle any combination of off-market signals; the map
 // recolors as a heat layer showing where those signals concentrate.
@@ -11,6 +18,7 @@ export default function OpportunityFilters({
   level,
   averages,
   selected,
+  selectedCounts,
   selectedName,
 }) {
   const [open, setOpen] = useState(false)
@@ -34,6 +42,11 @@ export default function OpportunityFilters({
   function valueFor(id) {
     const v = showingPlace ? selected?.[id] : averages?.[id]
     return v == null ? '—' : signalPct(v)
+  }
+
+  // Farm size for the selected place: how many homes sit behind the share.
+  function countFor(id) {
+    return showingPlace ? signalCount(selectedCounts?.[id]) : null
   }
 
   if (!open) {
@@ -70,6 +83,23 @@ export default function OpportunityFilters({
           Where off-market deals tend to concentrate. Toggle any combination — the map shades
           NJ {noun} by how much they stack up.
         </p>
+
+        <div className="presets">
+          {PRESETS.map((preset) => {
+            const on = presetIsActive(preset, active)
+            return (
+              <button
+                key={preset.id}
+                className={`preset ${on ? 'on' : ''}`}
+                title={preset.desc}
+                aria-pressed={on}
+                onClick={() => onSetAll(on ? [] : preset.signals)}
+              >
+                {preset.label}
+              </button>
+            )
+          })}
+        </div>
 
         <div className="value-mode" role="tablist" aria-label="Show values for">
           <button
@@ -132,7 +162,12 @@ export default function OpportunityFilters({
                             <span className="filter-label">{s.label}</span>
                             <span className="filter-desc">{s.desc}</span>
                           </span>
-                          <span className="filter-value">{valueFor(s.id)}</span>
+                          <span className="filter-value">
+                            {valueFor(s.id)}
+                            {countFor(s.id) && (
+                              <span className="filter-n">{countFor(s.id)}</span>
+                            )}
+                          </span>
                         </label>
                       </li>
                     )
