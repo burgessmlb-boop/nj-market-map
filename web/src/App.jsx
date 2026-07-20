@@ -12,7 +12,13 @@ import Methodology from './components/Methodology.jsx'
 import OpportunityFilters from './components/OpportunityFilters.jsx'
 import { useLevelData } from './lib/useLevelData.js'
 import { DEFAULT_SELECTION, resolveField, domainFor, LEVELS } from './lib/metrics.js'
-import { HEAT_FIELD, SIGNAL_BY_ID, applyHeat, signalPct } from './lib/signals.js'
+import {
+  HEAT_FIELD,
+  SIGNAL_BY_ID,
+  applyHeat,
+  signalAverages,
+  signalPct,
+} from './lib/signals.js'
 
 function useHashRoute() {
   const [hash, setHash] = useState(window.location.hash)
@@ -51,6 +57,8 @@ export default function App() {
 
   // Count of geos with a score per dimension (to flag empty layers in the UI).
   const coverage = scores?.meta?.scored ?? null
+  // Level-wide signal averages for the filter panel's "NJ avg" column.
+  const averages = useMemo(() => signalAverages(scores?.geos), [scores])
   const selectedEntry = selectedId ? scores?.geos?.[selectedId] : null
   const levelNoun = LEVELS.find((l) => l.id === level)?.noun
 
@@ -143,8 +151,18 @@ export default function App() {
             <OpportunityFilters
               active={activeSignals}
               onToggle={toggleSignal}
+              onSetAll={(ids) => setActiveSignals(new Set(ids))}
               onClear={() => setActiveSignals(new Set())}
               level={level}
+              averages={averages}
+              selected={selectedEntry?.signals}
+              selectedName={
+                selectedEntry
+                  ? level === 'county'
+                    ? `${selectedEntry.name} County`
+                    : selectedEntry.name
+                  : null
+              }
             />
           )}
           <Legend

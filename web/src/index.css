@@ -238,33 +238,83 @@ body {
 
 /* ---------- off-market filter panel (left) ---------- */
 
+/* Closed state: a pill that opens the panel. */
+.filter-pill {
+  position: absolute;
+  left: 12px;
+  top: 96px;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* Capped rather than full-height so the legend stays visible below it; the
+   body scrolls internally when the groups don't fit. */
 .filter-panel {
   position: absolute;
   left: 12px;
   top: 96px;
-  width: 232px;
+  max-height: calc(100% - 260px);
+  width: 268px;
   z-index: 11;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
 .filter-head {
   display: flex;
   align-items: center;
-  gap: 7px;
-  width: 100%;
+  gap: 6px;
   padding: 10px 12px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  text-align: left;
+  border-bottom: 1px solid var(--hairline);
+  flex-shrink: 0;
 }
 
 .filter-title {
   flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.filter-action {
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--accent);
+  background: transparent;
+  border: none;
+  padding: 2px 3px;
+  cursor: pointer;
+}
+
+.filter-action:hover {
+  text-decoration: underline;
+}
+
+.filter-sep {
+  color: var(--hairline);
+  font-size: 11px;
+}
+
+.filter-close {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.filter-close:hover {
+  color: var(--ink);
 }
 
 .filter-count {
@@ -281,19 +331,9 @@ body {
   padding: 0 5px;
 }
 
-.filter-chevron {
-  color: var(--muted);
-  font-size: 11px;
-}
-
-/* Collapsed by default so the map stays uncluttered; the header stays visible. */
 .filter-body {
-  display: none;
-  padding: 0 12px 12px;
-}
-
-.filter-panel.open .filter-body {
-  display: block;
+  padding: 10px 12px 12px;
+  overflow-y: auto;
 }
 
 .filter-intro {
@@ -303,17 +343,91 @@ body {
   line-height: 1.4;
 }
 
+/* NJ avg vs this place */
+.value-mode {
+  display: flex;
+  gap: 2px;
+  background: var(--page);
+  border: 1px solid var(--hairline);
+  border-radius: 7px;
+  padding: 2px;
+}
+
+.value-mode button {
+  flex: 1;
+  font: inherit;
+  font-size: 11.5px;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.value-mode button.active {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(11, 11, 11, 0.12);
+}
+
+.value-hint {
+  margin: 5px 0 0;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+/* ----- category groups ----- */
+
+.filter-group {
+  margin-top: 12px;
+}
+
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 2px 0 5px;
+  font: inherit;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.group-chevron {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.group-label {
+  flex: 1;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cat);
+}
+
+.group-count {
+  font-size: 10px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .filter-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 3px;
+  gap: 2px;
 }
 
 .filter-list label {
   display: flex;
-  gap: 8px;
+  gap: 9px;
   align-items: flex-start;
   padding: 6px 7px;
   border-radius: 7px;
@@ -324,20 +438,55 @@ body {
   background: var(--page);
 }
 
-.filter-list label.on {
-  background: rgba(37, 106, 191, 0.09);
+/* ----- toggle switch ----- */
+
+.switch {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 2px 0 0;
+  flex-shrink: 0;
+  width: 30px;
+  height: 17px;
+  border-radius: 9px;
+  background: #cfcec7;
+  border: none;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
 
-.filter-list input {
-  margin: 1px 0 0;
-  accent-color: var(--accent);
-  flex-shrink: 0;
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(11, 11, 11, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.switch:checked {
+  background: var(--cat);
+}
+
+.switch:checked::after {
+  transform: translateX(13px);
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .filter-text {
   display: flex;
   flex-direction: column;
   gap: 1px;
+  flex: 1;
+  min-width: 0;
 }
 
 .filter-label {
@@ -351,25 +500,17 @@ body {
   line-height: 1.35;
 }
 
-.filter-clear {
-  margin-top: 9px;
-  width: 100%;
-  font: inherit;
-  font-size: 12px;
-  padding: 6px;
-  color: var(--ink-2);
-  background: var(--page);
-  border: 1px solid var(--hairline);
-  border-radius: 7px;
-  cursor: pointer;
-}
-
-.filter-clear:hover {
-  color: var(--ink);
+.filter-value {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--cat);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  margin-top: 1px;
 }
 
 .filter-note {
-  margin: 9px 0 0;
+  margin: 12px 0 0;
   font-size: 10px;
   color: var(--muted);
   line-height: 1.35;
@@ -1053,18 +1194,19 @@ body {
     display: none; /* the strip crowds small screens; the pulse page has it all */
   }
 
-  /* Filters sit above the legend and stay collapsed until tapped. */
-  .filter-panel {
+  /* Filters open as a drawer above the legend; the pill sits out of the way. */
+  .filter-pill {
     top: auto;
     bottom: 150px;
     left: 8px;
-    width: calc(100vw - 68px);
-    max-width: 260px;
   }
 
-  .filter-panel.open .filter-body {
-    max-height: 45vh;
-    overflow-y: auto;
+  .filter-panel {
+    top: 96px;
+    bottom: 120px;
+    left: 8px;
+    width: calc(100vw - 68px);
+    max-width: 280px;
   }
 
   .metric-select {
