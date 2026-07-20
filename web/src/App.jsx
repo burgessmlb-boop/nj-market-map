@@ -9,8 +9,10 @@ import Rankings from './components/Rankings.jsx'
 import Pulse from './components/Pulse.jsx'
 import StateSummary from './components/StateSummary.jsx'
 import Methodology from './components/Methodology.jsx'
+import OpportunityFilters from './components/OpportunityFilters.jsx'
 import { useLevelData } from './lib/useLevelData.js'
 import { DEFAULT_SELECTION, resolveField, domainFor, LEVELS } from './lib/metrics.js'
+import { HEAT_FIELD, SIGNAL_BY_ID, applyHeat, signalPct } from './lib/signals.js'
 
 function useHashRoute() {
   const [hash, setHash] = useState(window.location.hash)
@@ -30,13 +32,21 @@ export default function App() {
   const [selection, setSelection] = useState(DEFAULT_SELECTION)
   const [selectedId, setSelectedId] = useState(null)
   const [flyTo, setFlyTo] = useState(null)
+  const [activeSignals, setActiveSignals] = useState(() => new Set())
   const view = useHashRoute()
   const { scores, geo, searchIndex, error } = useLevelData(level)
 
-  const field = useMemo(() => resolveField(selection), [selection])
+  const filtersOn = activeSignals.size > 0
+
+  // With filters on, the map paints the blended off-market heat instead of the
+  // selected score/metric.
+  const heatGeo = useMemo(() => applyHeat(geo, activeSignals), [geo, activeSignals])
+
+  const metricField = useMemo(() => resolveField(selection), [selection])
+  const field = filtersOn ? HEAT_FIELD : metricField
   const domain = useMemo(
-    () => domainFor(field, scores?.meta?.domains),
-    [field, scores],
+    () => (filtersOn ? [0, 50, 100] : domainFor(metricField, scores?.meta?.domains)),
+    [filtersOn, metricField, scores],
   )
 
   // Count of geos with a score per dimension (to flag empty layers in the UI).
@@ -66,6 +76,22 @@ export default function App() {
           : escapeHtml(props.name)
     const v = props[field.prop]
     const value = v != null ? field.fmt(v) : 'no data'
+    if (filtersOn) {
+      // Show what actually drives the heat here.
+      const rows = [...activeSignals]
+        .map((id) => {
+          const raw = props[`sig_${id}`]
+          return raw == null
+            ? null
+            : `<div class="tt-row">${escapeHtml(SIGNAL_BY_ID[id].label)}<span>${signalPct(raw)}</span></div>`
+        })
+        .filter(Boolean)
+        .join('')
+      return (
+        `<strong>${title}</strong><span class="tt-score">${value}</span>` +
+        (rows ? `<div class="tt-signals">${rows}</div>` : '')
+      )
+    }
     const rank =
       level === 'county' && field.ramp === 'score' && scores?.geos?.[props.id]?.rank?.[field.scoreId] != null
         ? ` · #${scores.geos[props.id].rank[field.scoreId]} of ${scores.meta.scored[field.scoreId]}`
@@ -73,12 +99,21 @@ export default function App() {
     return `<strong>${title}</strong><span class="tt-score">${value}${rank}</span>`
   }
 
+  function toggleSignal(id) {
+    setActiveSignals((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
   return (
     <div className="app">
       {view === 'map' ? (
         <>
           <MapView
-            geo={geo}
+            geo={heatGeo}
             field={field}
             domain={domain}
             selectedId={selectedId}
@@ -95,15 +130,31 @@ export default function App() {
               <div className="controls card">
                 <SearchBox index={searchIndex} onPick={goTo} />
                 <GeoLevelToggle level={level} onChange={changeLevel} />
-                <MetricPicker selection={selection} onChange={setSelection} coverage={coverage} />
+                <div className={filtersOn ? 'picker-dimmed' : ''} title={
+                  filtersOn ? 'Off-market filters are painting the map — clear them to use these' : ''
+                }>
+                  <MetricPicker selection={selection} onChange={setSelection} coverage={coverage} />
+                </div>
               </div>
             )}
             <StateSummary />
           </header>
+          {scores && (
+            <OpportunityFilters
+              active={activeSignals}
+              onToggle={toggleSignal}
+              onClear={() => setActiveSignals(new Set())}
+              level={level}
+            />
+          )}
           <Legend
             field={field}
             domain={domain}
-            empty={field.ramp === 'score' && coverage?.[field.scoreId] === 0}
+            empty={!filtersOn && field.ramp === 'score' && coverage?.[field.scoreId] === 0}
+            signalNames={
+              filtersOn ? [...activeSignals].map((id) => SIGNAL_BY_ID[id].label) : null
+            }
+            levelNoun={levelNoun}
           />
           {selectedEntry && (
             <DetailPanel

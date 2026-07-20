@@ -47,20 +47,22 @@ def download_zillow(level: str, force: bool = False) -> None:
 
 
 def download_acs(level: str, force: bool = False) -> None:
-    dest = config.RAW_DIR / f"acs_income_{level}.json"
+    """Income plus every off-market signal variable, in one request per level."""
+    dest = config.RAW_DIR / f"acs_{level}.json"
     if not force and _is_fresh(dest):
         print(f"  {dest.name}: fresh, skipping")
         return
     key = os.environ.get("CENSUS_API_KEY", "").strip()
     if not key:
         print(
-            "  WARNING: CENSUS_API_KEY is not set. Skipping income download;\n"
-            "  affordability scores will be null. Get a free key at\n"
-            "  https://api.census.gov/data/key_signup.html and put it in .env"
+            "  WARNING: CENSUS_API_KEY is not set. Skipping Census download;\n"
+            "  affordability scores and off-market signals will be null. Get a\n"
+            "  free key at https://api.census.gov/data/key_signup.html (.env locally,\n"
+            "  and as the CENSUS_API_KEY repo secret for the weekly refresh)"
         )
         return
     url = f"{config.ACS_BASE}{config.LEVELS[level]['acs_for']}&key={key}"
-    _stream_download(url, dest, f"ACS median household income [{level}]")
+    _stream_download(url, dest, f"ACS income + off-market signals [{level}]")
 
 
 def fetch_mortgage_rate() -> float | None:

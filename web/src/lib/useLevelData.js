@@ -51,6 +51,13 @@ function joinLevel(scores, geojson) {
           if (v != null) f.properties[`v_${metric}__${win}`] = v
         }
       }
+      // Off-market signals: raw share for tooltips, percentile for heat blending.
+      for (const [k, v] of Object.entries(entry.signals ?? {})) {
+        if (v != null) f.properties[`sig_${k}`] = v
+      }
+      for (const [k, v] of Object.entries(entry.signal_pct ?? {})) {
+        if (v != null) f.properties[`sp_${k}`] = v
+      }
     }
     bounds[id] = bbox(f.geometry.coordinates)
   }

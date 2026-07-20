@@ -90,26 +90,57 @@ def monthly_payment(price: pd.Series, rate: float) -> pd.Series:
     return loan * factor
 
 
-def load_income(level: str) -> pd.Series:
-    """ACS median household income indexed by the level's geo id."""
-    path = config.RAW_DIR / f"acs_income_{level}.json"
-    empty = pd.Series(dtype=float, name="income")
+def load_acs(level: str) -> pd.DataFrame:
+    """ACS variables for a level, indexed by geo id. Empty frame if missing."""
+    path = config.RAW_DIR / f"acs_{level}.json"
     if not path.exists():
-        print(f"  NOTE: no ACS income file for {level}; value_to_income will be null")
-        return empty
+        print(f"  NOTE: no ACS file for {level}; income and signals will be null")
+        return pd.DataFrame()
     rows = json.loads(path.read_text())
     df = pd.DataFrame(rows[1:], columns=rows[0])
     if level == "zip":
         geo = df["zip code tabulation area"]
-        df = df[geo.str.match(config.ZIP_PREFIX_PATTERN)]
+        df = df[geo.str.match(config.ZIP_PREFIX_PATTERN)].copy()
         ids = df["zip code tabulation area"]
     elif level == "town":
         ids = df["state"] + df["county"] + df["county subdivision"]
     else:  # county
         ids = df["state"] + df["county"]
-    income = pd.to_numeric(df[config.ACS_INCOME_VAR], errors="coerce")
-    income[income < 0] = pd.NA  # Census sentinel values like -666666666
-    return pd.Series(income.values, index=ids.values, name="income").astype(float)
+    out = pd.DataFrame(index=pd.Index(ids.values, name="id"))
+    for var in config.ACS_VARS:
+        if var not in df.columns:
+            continue
+        vals = pd.to_numeric(df[var], errors="coerce")
+        # Census sentinels for suppressed/unavailable values are large negatives.
+        vals[vals < 0] = pd.NA
+        out[var] = vals.values
+    return out
+
+
+def load_income(acs: pd.DataFrame) -> pd.Series:
+    """ACS median household income indexed by the level's geo id."""
+    if acs.empty or config.ACS_INCOME_VAR not in acs.columns:
+        return pd.Series(dtype=float, name="income")
+    return acs[config.ACS_INCOME_VAR].astype(float).rename("income")
+
+
+def build_signals(acs: pd.DataFrame, index: pd.Index) -> pd.DataFrame:
+    """Off-market opportunity signals as shares (0-1), suppressed where the
+    denominator is too small for ACS estimates to mean anything."""
+    out = pd.DataFrame(index=index)
+    for key, spec in config.ACS_SIGNALS.items():
+        if acs.empty or spec["den"] not in acs.columns:
+            out[key] = pd.NA
+            continue
+        den = acs[spec["den"]].reindex(index)
+        num = sum(
+            acs[v].reindex(index).fillna(0) for v in spec["num"] if v in acs.columns
+        )
+        share = num / den
+        share[den < config.MIN_UNITS_FOR_SIGNAL] = pd.NA
+        share[den.isna()] = pd.NA
+        out[key] = share
+    return out
 
 
 def build_places(level: str, frames: dict) -> pd.DataFrame:
@@ -133,7 +164,7 @@ def build_places(level: str, frames: dict) -> pd.DataFrame:
     }, index=zhvi.index)
 
 
-def build_metrics(level: str, frames: dict, mortgage_rate: float) -> pd.DataFrame:
+def build_metrics(acs: pd.DataFrame, frames: dict, mortgage_rate: float) -> pd.DataFrame:
     zhvi = frames["zhvi"]
     m = pd.DataFrame(index=zhvi.index)
     m["zhvi"] = smoothed(zhvi)
@@ -147,7 +178,7 @@ def build_metrics(level: str, frames: dict, mortgage_rate: float) -> pd.DataFram
     inv_now = smoothed(frames["inventory"], index=m.index)
     inv_yr = smoothed(frames["inventory"], 12, index=m.index)
     m["inventory_yoy"] = (inv_now / inv_yr - 1).reindex(m.index)
-    m["income"] = load_income(level).reindex(m.index)
+    m["income"] = load_income(acs).reindex(m.index)
     m["value_to_income"] = m["zhvi"] / m["income"]
     m["buy_to_rent"] = monthly_payment(m["zhvi"], mortgage_rate) / m["zori"]
     return m
@@ -257,7 +288,17 @@ def _int(v):
     return int(round(float(v)))
 
 
-def build_output(m, places, scores, ranks, trends, history, meta) -> dict:
+def build_signal_pct(signals: pd.DataFrame) -> pd.DataFrame:
+    """Percentile-rank each signal within the level (0-100). Higher always means
+    'more of this signal', so the frontend can average any mix of checked
+    signals into one heat value."""
+    pct = pd.DataFrame(index=signals.index)
+    for col in signals.columns:
+        pct[col] = signals[col].rank(pct=True) * 100
+    return pct
+
+
+def build_output(m, places, scores, ranks, trends, history, signals, signal_pct, meta) -> dict:
     geos = {}
     scored_counts = {d: int(scores[d].notna().sum())
                      for d in ["overall", "investment", "hotness", "affordability"]}
@@ -293,6 +334,15 @@ def build_output(m, places, scores, ranks, trends, history, meta) -> dict:
             },
             "trends": {},
             "history": {},
+            # Off-market signals: raw share for display, percentile for blending.
+            "signals": {
+                k: _num(signals.loc[g, k]) for k in signals.columns
+                if not pd.isna(signals.loc[g, k])
+            },
+            "signal_pct": {
+                k: _num(signal_pct.loc[g, k], 1) for k in signal_pct.columns
+                if not pd.isna(signal_pct.loc[g, k])
+            },
         }
         for col in ("city", "county", "official"):
             if col in places.columns:
@@ -316,13 +366,24 @@ def build_output(m, places, scores, ranks, trends, history, meta) -> dict:
 def run_level(level: str, mortgage_rate: float) -> None:
     print(f"Computing metrics [{level}] ...")
     frames = load_level_frames(level)
-    m = build_metrics(level, frames, mortgage_rate)
+    acs = load_acs(level)
+    m = build_metrics(acs, frames, mortgage_rate)
     print(f"  {len(m)} {level} geos in ZHVI")
     places = build_places(level, frames)
     scores = score_dimensions(m)
     ranks = build_ranks(scores)
     trends = build_trends(frames, m.index)
     history, history_start = build_history(frames, m.index)
+    signals = build_signals(acs, m.index)
+    signal_pct = build_signal_pct(signals)
+    covered = {k: int(signals[k].notna().sum()) for k in signals.columns}
+    print("  off-market signals: " + ", ".join(f"{k}={v}" for k, v in covered.items()))
+    domains = build_domains(m, trends)
+    for k in signals.columns:
+        vals = signals[k].dropna()
+        if len(vals) >= 5:
+            q = vals.quantile([0.05, 0.5, 0.95])
+            domains[f"signal_{k}"] = [_num(q.iloc[0]), _num(q.iloc[1]), _num(q.iloc[2])]
     meta = {
         "level": level,
         "generated": date.today().isoformat(),
@@ -332,9 +393,10 @@ def run_level(level: str, mortgage_rate: float) -> None:
         "n": int(len(m)),
         "history_start": history_start,
         "history_months": config.HISTORY_MONTHS,
-        "domains": build_domains(m, trends),
+        "domains": domains,
+        "signal_coverage": covered,
     }
-    out = build_output(m, places, scores, ranks, trends, history, meta)
+    out = build_output(m, places, scores, ranks, trends, history, signals, signal_pct, meta)
     config.OUT_DIR.mkdir(parents=True, exist_ok=True)
     dest = config.OUT_DIR / f"scores_{level}.json"
     dest.write_text(json.dumps(out, separators=(",", ":")))

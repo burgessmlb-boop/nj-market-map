@@ -72,6 +72,53 @@ export default function Methodology({ meta }) {
         data for a zip, the blend re-weights across what’s available.
       </p>
 
+      <h2>Off-market (“pre-MLS”) signals</h2>
+      <p>
+        The filter panel shades the map by indicators of where off-market deal flow tends to
+        concentrate. Tick any combination and each area is ranked against other NJ places at
+        the same level; the map paints the average of the ticked signals, so 100 means an area
+        stacks up highest across everything you selected.
+      </p>
+      <ul>
+        <li>
+          <strong>Distressed vacancy</strong> — homes empty and <em>not</em> listed for sale or
+          rent. This is deliberately not total vacancy: Cape May County is about 55% “vacant”
+          purely because of seasonal shore homes, which says nothing about distress.
+        </li>
+        <li>
+          <strong>Landlord density</strong> — share of homes rented out, a proxy for
+          tired-landlord opportunities.
+        </li>
+        <li>
+          <strong>Owned free &amp; clear</strong> — no mortgage, so owners hold equity and can
+          transact easily.
+        </li>
+        <li>
+          <strong>Long-time owners</strong> — owned 15+ years, which tends to pair equity with
+          life-stage moves.
+        </li>
+        <li>
+          <strong>Older housing</strong> — built before 1970; value-add and rehab candidates.
+        </li>
+        <li>
+          <strong>Seasonal / second homes</strong> — shore and vacation markets.
+        </li>
+      </ul>
+      <p>
+        <strong>These are neighborhood statistics, not property listings.</strong> This site
+        does not have off-market inventory, addresses of distressed properties, or any
+        information about individual owners — and deliberately never will. New Jersey redacts
+        property-owner names from public records under Daniel’s Law, and publishing personal
+        details about people in difficult circumstances isn’t something a market map should do.
+        These filters tell you which <em>areas</em> to focus on; finding specific properties is
+        your own research.
+      </p>
+      <p>
+        Source: U.S. Census Bureau ACS 5-Year Estimates ({meta?.acs_year ?? 2024}), which are
+        survey-based and lag the present by a year or two. Very small zip codes and towns are
+        left blank where the sample is too small to be meaningful.
+      </p>
+
       <h2>What counts as a “town”</h2>
       <p>
         Towns are New Jersey’s 564 official municipalities (Census county subdivisions).

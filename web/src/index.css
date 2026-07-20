@@ -236,6 +236,167 @@ body {
   background: rgba(37, 106, 191, 0.08);
 }
 
+/* ---------- off-market filter panel (left) ---------- */
+
+.filter-panel {
+  position: absolute;
+  left: 12px;
+  top: 96px;
+  width: 232px;
+  z-index: 11;
+  overflow: hidden;
+}
+
+.filter-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.filter-title {
+  flex: 1;
+}
+
+.filter-count {
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+}
+
+.filter-chevron {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* Collapsed by default so the map stays uncluttered; the header stays visible. */
+.filter-body {
+  display: none;
+  padding: 0 12px 12px;
+}
+
+.filter-panel.open .filter-body {
+  display: block;
+}
+
+.filter-intro {
+  margin: 0 0 9px;
+  font-size: 11.5px;
+  color: var(--ink-2);
+  line-height: 1.4;
+}
+
+.filter-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.filter-list label {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 6px 7px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.filter-list label:hover {
+  background: var(--page);
+}
+
+.filter-list label.on {
+  background: rgba(37, 106, 191, 0.09);
+}
+
+.filter-list input {
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+.filter-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.filter-label {
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.filter-desc {
+  font-size: 10.5px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.filter-clear {
+  margin-top: 9px;
+  width: 100%;
+  font: inherit;
+  font-size: 12px;
+  padding: 6px;
+  color: var(--ink-2);
+  background: var(--page);
+  border: 1px solid var(--hairline);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.filter-clear:hover {
+  color: var(--ink);
+}
+
+.filter-note {
+  margin: 9px 0 0;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.picker-dimmed {
+  opacity: 0.45;
+}
+
+/* Tooltip breakdown of the active signals. */
+.tt-signals {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 11.5px;
+}
+
+.tt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.tt-row span {
+  font-weight: 600;
+}
+
 /* ---------- legend ---------- */
 
 .legend {
@@ -890,6 +1051,20 @@ body {
 
   .state-summary {
     display: none; /* the strip crowds small screens; the pulse page has it all */
+  }
+
+  /* Filters sit above the legend and stay collapsed until tapped. */
+  .filter-panel {
+    top: auto;
+    bottom: 150px;
+    left: 8px;
+    width: calc(100vw - 68px);
+    max-width: 260px;
+  }
+
+  .filter-panel.open .filter-body {
+    max-height: 45vh;
+    overflow-y: auto;
   }
 
   .metric-select {

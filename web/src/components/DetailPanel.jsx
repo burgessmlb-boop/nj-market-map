@@ -1,6 +1,7 @@
 import { scoreColor, scoreInk } from '../lib/colors.js'
 import { dollars, percent, pts, ratio, days, deltaDays, score1, monthName } from '../lib/format.js'
 import { LEVELS } from '../lib/metrics.js'
+import { SIGNALS, signalPct } from '../lib/signals.js'
 import Sparkline from './Sparkline.jsx'
 
 const SUB_SCORES = [
@@ -34,7 +35,16 @@ const TREND_ROWS = [
 
 export default function DetailPanel({ id, level, entry, meta, onClose }) {
   if (!id || !entry) return null
-  const { scores, coverage, stats, trends = {}, history = {}, rank = {} } = entry
+  const {
+    scores,
+    coverage,
+    stats,
+    trends = {},
+    history = {},
+    rank = {},
+    signals = {},
+  } = entry
+  const signalRows = SIGNALS.filter((s) => signals[s.id] != null)
   const partial = SUB_SCORES.some(([k]) => coverage[k] != null && coverage[k] < 1)
   const noun = LEVELS.find((l) => l.id === level)?.noun ?? 'places'
   const nScored = meta?.scored?.overall
@@ -127,6 +137,22 @@ export default function DetailPanel({ id, level, entry, meta, onClose }) {
                       </td>
                     )
                   })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {signalRows.length > 0 && (
+        <div className="trend-block">
+          <div className="spark-title">Off-market signals</div>
+          <table className="stats-table">
+            <tbody>
+              {signalRows.map((s) => (
+                <tr key={s.id}>
+                  <td title={s.desc}>{s.label}</td>
+                  <td>{signalPct(signals[s.id])}</td>
                 </tr>
               ))}
             </tbody>

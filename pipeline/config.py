@@ -49,7 +49,67 @@ ZILLOW_DATASETS = {
 
 ACS_YEAR = 2024
 ACS_INCOME_VAR = "B19013_001E"  # median household income
-ACS_BASE = f"https://api.census.gov/data/{ACS_YEAR}/acs/acs5?get=NAME,{ACS_INCOME_VAR}"
+
+# Off-market ("pre-MLS") opportunity signals: neighborhood-level indicators of
+# where off-market deal flow tends to concentrate. These are AREA AGGREGATES —
+# never individual properties or owners (NJ redacts owner names under Daniel's
+# Law, and republishing personal data invites real legal risk).
+#
+# Each signal is numerator-sum / denominator, expressed as a share 0-1.
+ACS_SIGNALS = {
+    "distressed_vacancy": {
+        "label": "Distressed vacancy",
+        # "Other vacant" excludes seasonal / for-rent / for-sale, so it isolates
+        # homes sitting empty and NOT on the market. Plain vacancy would be
+        # misleading in NJ (Cape May is 55% vacant purely from shore homes).
+        "num": ["B25004_008E"],
+        "den": "B25002_001E",
+    },
+    "absentee": {
+        "label": "Renter-occupied (landlord density)",
+        "num": ["B25003_003E"],
+        "den": "B25003_001E",
+    },
+    "free_clear": {
+        "label": "Owned free and clear",
+        "num": ["B25081_009E"],
+        "den": "B25081_001E",
+    },
+    "long_tenure": {
+        "label": "Owners 15+ years in place",
+        "num": ["B25038_006E", "B25038_007E", "B25038_008E"],
+        "den": "B25038_002E",
+    },
+    "seasonal": {
+        "label": "Seasonal / second homes",
+        "num": ["B25004_006E"],
+        "den": "B25002_001E",
+    },
+    "older_stock": {
+        "label": "Homes built before 1970",
+        "num": ["B25034_008E", "B25034_009E", "B25034_010E", "B25034_011E"],
+        "den": "B25034_001E",
+    },
+}
+
+# ACS 5-year estimates get noisy for very small areas; suppress a signal when
+# its denominator is below this many units rather than publish junk.
+MIN_UNITS_FOR_SIGNAL = 100
+
+
+def _acs_vars() -> list[str]:
+    """Every ACS variable the pipeline needs, deduplicated."""
+    out = [ACS_INCOME_VAR]
+    for spec in ACS_SIGNALS.values():
+        out.extend(spec["num"])
+        out.append(spec["den"])
+    return sorted(set(out))
+
+
+ACS_VARS = _acs_vars()
+ACS_BASE = (
+    f"https://api.census.gov/data/{ACS_YEAR}/acs/acs5?get=NAME,{','.join(ACS_VARS)}"
+)
 
 # Geography levels rendered as map layers. Each level gets its own Zillow
 # downloads, ACS income pull, boundary geojson, and scores_{level}.json.

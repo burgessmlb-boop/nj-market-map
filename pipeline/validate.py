@@ -106,7 +106,55 @@ def validate_level(level: str) -> dict | None:
     check(not missing, f"color domains present ({len(domains)} fields; missing: {missing[:4]})",
           hard=level != "county")  # 21 counties can undercut the n>=5 quantile floor
 
+    validate_signals(level, geos, domains)
     return data
+
+
+def validate_signals(level: str, geos: dict, domains: dict) -> None:
+    """Off-market signals: coverage, sane ranges, and real spread. A signal that
+    is flat or all-null is broken, not merely uninteresting."""
+    for key in config.ACS_SIGNALS:
+        vals = [e["signals"][key] for e in geos.values() if key in e.get("signals", {})]
+        share = len(vals) / len(geos) if geos else 0
+        check(share >= 0.75,
+              f"signal {key}: {len(vals)}/{len(geos)} geos ({share:.0%}, want >= 75%)")
+        if not vals:
+            continue
+        check(all(0 <= v <= 1 for v in vals), f"signal {key}: all shares in [0,1]")
+        spread = max(vals) - min(vals)
+        check(spread >= 0.02,
+              f"signal {key}: spread {spread:.1%} (want >= 2% or the heat map is flat)")
+        check(f"signal_{key}" in domains, f"signal {key}: color domain present",
+              hard=level != "county")
+        pcts = [e["signal_pct"][key] for e in geos.values() if key in e.get("signal_pct", {})]
+        check(all(0 <= p <= 100 for p in pcts), f"signal {key}: percentiles in [0,100]")
+
+
+def signal_spot_checks(all_data: dict) -> None:
+    """Cape May must top 'seasonal' (shore second homes) but NOT 'distressed
+    vacancy' — the distinction the whole signal design rests on."""
+    counties = all_data.get("county", {}).get("geos", {})
+    if not counties:
+        return
+    def rank_of(name, sig):
+        ordered = sorted((e for e in counties.values() if sig in e["signals"]),
+                         key=lambda e: -e["signals"][sig])
+        for i, e in enumerate(ordered, 1):
+            if e["name"] == name:
+                return i, len(ordered)
+        return None, len(ordered)
+    cm_seasonal, n = rank_of("Cape May", "seasonal")
+    cm_distress, _ = rank_of("Cape May", "distressed_vacancy")
+    print(f"\n  Cape May: seasonal #{cm_seasonal}/{n}, distressed vacancy #{cm_distress}/{n}")
+    check(cm_seasonal == 1, "Cape May ranks #1 on seasonal / second homes")
+    check(cm_distress is not None and cm_distress > n / 2,
+          "Cape May is NOT in the top half for distressed vacancy "
+          "(its vacancy is seasonal, not distress)")
+    salem_distress, _ = rank_of("Salem", "distressed_vacancy")
+    check(salem_distress is not None and salem_distress <= 3,
+          f"Salem County is top-3 for distressed vacancy (got #{salem_distress})")
+    hudson_absentee, _ = rank_of("Hudson", "absentee")
+    check(hudson_absentee == 1, "Hudson County ranks #1 on renter-occupied share")
 
 
 def spot_checks(all_data: dict) -> None:
@@ -174,6 +222,7 @@ def main() -> None:
 
     validate_pulse()
     spot_checks(all_data)
+    signal_spot_checks(all_data)
 
     if "zip" in all_data:
         geos = all_data["zip"]["geos"]
